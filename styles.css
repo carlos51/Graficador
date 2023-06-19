@@ -2,6 +2,8 @@ html,body {
     background-color: rgb(255, 255, 255);
     height: 100%;
     margin: 0px;
+    overflow: hidden;
+    box-sizing:border-box;
     
   }
 #main_cont {
@@ -33,10 +35,25 @@ html,body {
     flex-direction: column;
     
 }
-#answer {
-    background-color: aqua;
-    width: 395px;
+#vectores {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+#vectores span.entrada {
+    width: 70px;
     
+}
+#entradas {
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    border-bottom: 1px solid lightgray;
+}
+
+#entradas span.entrada {
+    width: 90%;
 }
 
 

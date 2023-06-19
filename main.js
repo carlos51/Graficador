@@ -7,44 +7,224 @@ var campos = []
 class MathBox{
     static lastElement = "0";
     constructor(padre,nombre){
-        //var elemento1 = document.lastElementChild("algebra")
+        var self = this;
         this.p = document.createElement("p");
-        //console.log("padre",document.getElementById(padre))
         this.p.textContent = nombre;
         document.getElementById(padre).appendChild(this.p);
 
         this.span = document.createElement("span");
         this.span.id = nombre;
+        this.span.className = "entrada";
+        this.funcion = "";
         this.span.addEventListener("keydown",function(event){
-            //console.log(event)
             if (event.key === 'Enter') {
                 // Código que se ejecutará cuando se presione Enter
-                //console.log('Se presionó Enter');
-                answerMathField.blur();
-                campos.push(new MathBox("algebra",(parseInt(nombre)+1).toString()))
+                self.answerMathField.blur();
+                campos.push(new MathBox("entradas",(parseInt(nombre)+1).toString()))
               }
+            else if(event.key == "Backspace"){
+                let a = self.span.textContent.length
+                if ( a == 2){
+                    console.log("vacio")
+                    self.mesh.visible = false
+                }
+                else if(a == 1 && self.span.id != "0"){
+                    let index = parseInt(self.span.id)-1
+                    self.p.remove()
+                    scene.remove(self.mesh)
+                    campos.splice(index,1)
+                    if (index-1 >= 0){
+                        campos[index-1].answerMathField.focus()
+                    }
+                    else{
+                        answerSpan.answerMathField.focus()
+                    }
+                }
+            }
         })
-        //this.span.oninput = myfun();
         this.p.appendChild(this.span);
         this.geometry;
-        var mesh = new THREE.Mesh( this.geometry, material );
-        //console.log(this.mesh)
-        scene.add( mesh );
+        this.mesh = new THREE.Mesh( this.geometry, material );
+        scene.add( this.mesh );
 
-        var answerMathField = MQ.MathField(this.span, {
+        this.answerMathField = MQ.MathField(this.span, {
             handlers: {
             edit: function() {
-                var enteredMath = answerMathField.latex(); // Get entered math in LaTeX format
-                //this.mesh.geometry = checkAnswer(enteredMath);
+                var enteredMath = self.answerMathField.latex(); // Get entered math in LaTeX format
                 try{
-                    mesh.geometry = checkAnswer(enteredMath);
-                    console.log("latex",enteredMath)
+                    if(!self.mesh.visible && self.span.textContent.length == 2){
+                        self.mesh.visible = true
+                    }
+                    self.mesh.geometry = checkAnswer(enteredMath);
+                    console.log("campos",campos)
+                    self.funcion = enteredMath;
                 }catch{}
             }
             }
         });
-        answerMathField.focus();
+        this.answerMathField.focus();
         
+    }
+    UpdateMesh(){
+        console.log("mesh actualizado")
+        this.mesh.geometry = checkAnswer(this.funcion);
+    }
+}
+
+class VectBox{
+    static i = [];
+    static j = [];
+    static k = [];
+    static linesh = [];
+    static linesv = [];
+    constructor(padre, nombre, vector){
+        var self = this;
+        this.name = nombre;
+        this.vector = vector;
+        this.UpdateVec();
+        this.p = document.createElement("p");
+        this.p.textContent = nombre;
+        document.getElementById(padre).appendChild(this.p);
+
+        this.span = document.createElement("span");
+        this.span.id = this.name;
+        this.span.className = "entradav"
+        this.span.addEventListener("keydown",function(event){
+            if (event.key === 'Enter') {
+                // Código que se ejecutará cuando se presione Enter
+                self.answerMathField.blur();
+              }/*
+            else if(event.key == "Backspace"){
+                let a = self.span.textContent.length
+                
+            }*/
+        })
+        this.p.appendChild(this.span);
+
+
+        this.answerMathField = MQ.MathField(this.span, {
+            handlers: {
+            edit: function() {
+                var enteredMath = self.answerMathField.latex(); // Get entered math in LaTeX format
+                //this.mesh.geometry = checkAnswer(enteredMath);
+                //var arreglo = JSON.parse(enteredMath);
+                var ascii = latex_to_js(enteredMath);
+                //console.log(enteredMath, ascii);
+                var arreglo;
+                try{
+
+                    arreglo = JSON.parse(latex_to_js(enteredMath));
+                    self.vector = arreglo;
+                    self.UpdateVec();
+                    
+                    if(arreglo.length == 3){
+                        updateGrid(5,VectBox.i,VectBox.j,VectBox.k);
+                        answerSpan.UpdateMesh();
+
+                    }
+                }catch{}
+                
+            }
+            }
+        });
+        this.answerMathField.write("\\left["+this.vector.toString()+"\\right]");
+    }
+    UpdateVec(){
+        //console.log("UpdateVec");
+        if (this.name == "i"){
+            VectBox.i = this.vector;
+            //console.log("vector i actualizado");
+        }
+        else if(this.name == "j"){
+            VectBox.j = this.vector;
+        }
+        else{
+            VectBox.k = this.vector;
+        }
+    }
+}
+
+function grid(i,j,k){
+    //console.log(i);
+    const m = setMatrix(i,j,k);
+        let n = 5
+        for (let i = -n;i <= n; i++){
+            
+            //const vector = new THREE.Vector3(2, 4, 0);
+            // Paso 2: Crea un material para la línea
+            var material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+
+            // Paso 3: Define los puntos de inicio y fin de la línea
+            var startPoint = new THREE.Vector3(-i, 0, -n);
+            var endPoint = new THREE.Vector3(-i, 0, n);
+
+            var startPoint2 = new THREE.Vector3(-n, 0, -i);
+            var endPoint2 = new THREE.Vector3(n, 0, -i);
+            //var test = new THREE.Vector3(0, 0, 0);
+
+
+            var points = [startPoint.applyMatrix3(m), endPoint.applyMatrix3(m)];
+            var points2 = [startPoint2.applyMatrix3(m), endPoint2.applyMatrix3(m)];
+
+            //console.log(startPoint.add(endPoint))
+
+            // Paso 4: Crea la geometría de la línea usando los puntos definidos
+            var geometry = new THREE.BufferGeometry().setFromPoints(points);
+            var geometry2 = new THREE.BufferGeometry().setFromPoints(points2);
+
+            // Paso 5: Crea la instancia de la línea con la geometría y el material
+            var line = new THREE.Line(geometry, material);
+            line.name = "h" + i.toString();
+            //console.log("Nombre: ", line.name)
+            var line2 = new THREE.Line(geometry2, material);
+            line.name = "v" + i.toString();
+
+            // Paso 6: Agrega la línea a la escena
+            //console.log("Grid",geometry)
+            VectBox.linesh.push(line);
+            VectBox.linesv.push(line2);
+            scene.add(line);
+            scene.add(line2);
+        }
+
+    
+}
+function setMatrix(i,j,k){
+    const m = new THREE.Matrix3();
+    m.set(  
+        i[0], k[0], j[0],
+        i[2], k[2], j[2],
+        i[1], k[1], j[1] 
+    );
+    return m
+}
+function updateGrid(n,i,j,k){
+    //console.log("grid actualizado");
+    const m = setMatrix(i,j,k);
+    let count = 0
+    for (let i = -n; i <= n; i++) {
+        
+        // Paso 3: Define los puntos de inicio y fin de la línea
+        var startPoint = new THREE.Vector3(-i, 0, -n);
+        var endPoint = new THREE.Vector3(-i, 0, n);
+
+        var startPoint2 = new THREE.Vector3(-n, 0, -i);
+        var endPoint2 = new THREE.Vector3(n, 0, -i);
+        //var test = new THREE.Vector3(0, 0, 0);
+
+
+        var points = [startPoint.applyMatrix3(m), endPoint.applyMatrix3(m)];
+        var points2 = [startPoint2.applyMatrix3(m), endPoint2.applyMatrix3(m)];
+
+        //console.log(points)
+        //console.log("vercices",)
+        VectBox.linesh[count].geometry.setFromPoints(points)
+        VectBox.linesv[count].geometry.setFromPoints(points2)
+        //VectBox.linesh[i].geometry.vertices = points;
+        //VectBox.linesv[i].geometry.vertices = points2;
+
+        //cube.geometry.verticesNeedUpdate = true;
+        count ++;
     }
 }
 
@@ -66,7 +246,16 @@ function checkAnswer(expretion){
 
 init();
 animate();
-var answerSpan = new MathBox("algebra","0")
+
+//var test = new VectBox("vectores", "test")
+
+var vectI = new VectBox("vectores", "i",[1,0,0]);
+var vectJ = new VectBox("vectores", "j",[2,1,1]);
+var vectK = new VectBox("vectores", "k",[1,1,2]);
+
+grid(vectI.vector, vectJ.vector, vectK.vector)
+
+var answerSpan = new MathBox("entradas","0");
 
 
 function init() {
@@ -88,16 +277,16 @@ function init() {
     scene.add( light );
 
     //
+    
     const axesHelper = new THREE.AxesHelper( 2 );
     scene.add( axesHelper );
+    
     //
     renderer = new THREE.WebGLRenderer( { antialias: true, canvas:my_canvas } );
     renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize( canvasWidth, canvasHeight);
     //
     
-    
-
     stats = new Stats();
     //document.body.appendChild( stats.dom );
     //
@@ -116,7 +305,9 @@ const gridHelper = new THREE.GridHelper( size, divisions );
 scene.add( gridHelper );
 
 function superficie(funcion){
-    var fn = evaluatex(funcion)
+    console.log(funcion);
+    var fn = evaluatex(funcion);
+    var m = setMatrix(vectI.vector,vectJ.vector, vectK.vector);
     const geometry = new THREE.BufferGeometry();
 
     const indices = [];
@@ -148,7 +339,10 @@ function superficie(funcion){
 
             //vertices.push( x,x*x-y*y, - y );
             //vertices.push( x,math.evaluate(funcion,{x:x,y:y}), - y );
-            vertices.push( x,fn({x:x,y:y}), - y );
+            const vector = new THREE.Vector3(x,fn({x:x,y:y}), - y)
+            //vertices.push( x,fn({x:x,y:y}), - y );
+            vector.applyMatrix3(m)
+            vertices.push(vector)
             normals.push( 0, 0, 1 );
 
             const r = ( x / size ) + 0.5;
@@ -182,7 +376,8 @@ function superficie(funcion){
 
     }
     geometry.setIndex( indices );
-    geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+    //geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+    geometry.setFromPoints(vertices)
     geometry.setAttribute( 'normal', new THREE.Float32BufferAttribute( normals, 3 ) );
     geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
 
@@ -192,6 +387,8 @@ function superficie(funcion){
 function onWindowResize() {
     const canvasWidth = window.innerWidth - 400;
     const canvasHeight = window.innerHeight - 51;
+
+    document.getElementById("entradas").style.height = window.innerHeight - 80
 
     camera.aspect = canvasWidth / canvasHeight;
     camera.updateProjectionMatrix();
