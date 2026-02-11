@@ -1,4 +1,3 @@
-# Graficador
 ## Project Overview
 
 This project is an **unfinished experimental 3D mathematical visualizer** built with **Three.js** and **MathQuill**.
